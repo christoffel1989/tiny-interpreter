@@ -1,6 +1,6 @@
 # tiny-interpreter
 
-Tiny command-line-based interpreter is written by Rust. Basic framework and coding are copied and developed according to reposes in https://github.com/stijnh/rust-calculator and https://github.com/christoffel1989/C_Interpreter.
+Tiny-Interpreter is a command-line-based written by Rust. Basic framework and coding are copied and developed according to https://github.com/stijnh/rust-calculator and https://github.com/christoffel1989/C_Interpreter.
 
 ## Problem Need to Solve
 * Index operation can't be placed on the left side of `=` to modify the specified array element.
@@ -78,7 +78,7 @@ ans = [1, 2, 3, 4]
 ```
 
 # Use Primitive Function
-The interpreter allows you to operate with number, boolean, list or, declared variable holding them with primitive function.
+The interpreter allows you to operate with a number, boolean, list or, declared variable holding them with primitive function.
 ```
 >>> sin(pi / 2)
 ans = 1
@@ -123,7 +123,7 @@ ans = 4.5
 ```
 
 # Branch Control
-The interpreter will evaluate just a part of statements if condition statement is used.
+The interpreter will evaluate just a part of statements if a condition statement is used.
 ```
 >>> let a = 3;
 >>> let b = 4;
@@ -134,7 +134,7 @@ ans == 4
 ```
 
 # Use Variable to Hold a Lambda
-If you want to define a function for later use, you can use to `let` statement to declare a functional variable. The tiny interpreter can not evaluate a named variable without declaration. The result of a lambda is equal to the result of lambda body block.
+If you want to define a function for later use, you can use to `let` statement to declare a functional variable. The tiny interpreter can not evaluate a named variable without declaration. The result of a lambda is equal to the result of a lambda body block.
 ```
 >>> let f1 = (x) => { x ^ 2 + 1 }
 ans = lambda
@@ -151,7 +151,7 @@ ans = lambda
 >>> f = 5
 ans = 5
 ```
-In this way, the variable of number, boolean and, array can be regarded as lambda with the constant result.
+In this way, the variable of number, boolean or, an array can be regarded as lambda with the constant result.
 
 # Use Recursion Function
 Intepretor supports to define a recursion fuction.
@@ -172,7 +172,7 @@ ans = 1
 ans = 6
 ```
 
-# Use Array to hold multiple Lambda
+# Use Array to Hold Multiple Lambda
 The interpreter allows you to declare an array that holds multiple lambdas. Index operation `[]` and function call operation `()` can be combined. 
 ```
 >>> let f = [(x, y) => {2 * x + y}, (x, y) => {x ^ 2 + y}];
