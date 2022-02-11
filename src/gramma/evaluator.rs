@@ -180,7 +180,7 @@ fn evaluate_lambda(args: &Vec<String>, body: &Box<ASTNode>, env: Rc<RefCell<Envi
     Ok(Some(ASTValue::Function(Rc::new(UsrDefFun {
         name: None,
         params: args.to_owned(),
-        body: Rc::new(capture_vars_from_outside(body, args, env)?),
+        body: Rc::new(capture_outside_variable(body, args, env)?),
     }))))
 }
 
@@ -246,12 +246,12 @@ fn evaluate_block(nodes: &Vec<ASTNode>, env: Rc<RefCell<Environment>>) -> Result
 //当执行f(3)时返回的lambda中的z应该替换为z
 //这种机制的存在意味着lambda表达式中包含的外部变量不能出现在赋值符号左侧
 //针对上面的案例 这意味着lambda的实体内不能出现z = xxx或者let z = xxx的语句
-fn capture_vars_from_outside(lambda: &ASTNode, bound: &[String], env: Rc<RefCell<Environment>>) -> Result<ASTNode, String> {
+fn capture_outside_variable(lambda: &ASTNode, bound: &[String], env: Rc<RefCell<Environment>>) -> Result<ASTNode, String> {
     Ok(match lambda {
         //空节点
         ASTNode::Empty => ASTNode::Empty,
         //无返回值节点(将返回值设置为None 实现忽略)
-        ASTNode::Void(node) => ASTNode::Void(Box::new(capture_vars_from_outside(node, bound, env)?)),
+        ASTNode::Void(node) => ASTNode::Void(Box::new(capture_outside_variable(node, bound, env)?)),
         //字面量节点
         ASTNode::Literal(val) => ASTNode::Literal(val.clone()),
         //数值/函数变量
@@ -265,24 +265,24 @@ fn capture_vars_from_outside(lambda: &ASTNode, bound: &[String], env: Rc<RefCell
         },
         //数组元素索引
         ASTNode::Index(arr, index) => {
-            let new_arr = Box::new(capture_vars_from_outside(arr, bound, env.clone())?);
-            let new_index = Box::new(capture_vars_from_outside(index, bound, env.clone())?);
+            let new_arr = Box::new(capture_outside_variable(arr, bound, env.clone())?);
+            let new_index = Box::new(capture_outside_variable(index, bound, env.clone())?);
             ASTNode::Index(new_arr, new_index)
         }
         //数组节点
         ASTNode::Array(elements) => {
             let mut new_elements = vec![];
             for element in elements {
-                new_elements.push(capture_vars_from_outside(element, bound, env.clone())?)
+                new_elements.push(capture_outside_variable(element, bound, env.clone())?)
             }
             ASTNode::Array(new_elements)
         }
         //单目运算表达式
-        ASTNode::Unitary(op, node) => ASTNode::Unitary(*op, Box::new(capture_vars_from_outside(node, bound, env)?)),
+        ASTNode::Unitary(op, node) => ASTNode::Unitary(*op, Box::new(capture_outside_variable(node, bound, env)?)),
         //双目运算节点
         ASTNode::Binary(op, lhs, rhs) => {
-            let new_lhs = Box::new(capture_vars_from_outside(lhs, bound, env.clone())?);
-            let new_rhs = Box::new(capture_vars_from_outside(rhs, bound, env)?);
+            let new_lhs = Box::new(capture_outside_variable(lhs, bound, env.clone())?);
+            let new_rhs = Box::new(capture_outside_variable(rhs, bound, env)?);
             ASTNode::Binary(*op, new_lhs, new_rhs)
         },
         //定义(true)赋值(false)数值/函数变量节点
@@ -302,18 +302,18 @@ fn capture_vars_from_outside(lambda: &ASTNode, bound: &[String], env: Rc<RefCell
             for arg in bound {
                 new_bound.push(arg.clone());
             }
-            ASTNode::Lambda(args.clone(), Box::new(capture_vars_from_outside(body, &new_bound[..], env.clone())?))
+            ASTNode::Lambda(args.clone(), Box::new(capture_outside_variable(body, &new_bound[..], env.clone())?))
         }
         //条件表达式节点
         ASTNode::Cond(if_node, elseif_nodes, else_node) => {
-            let new_if_node = Box::new((capture_vars_from_outside(&if_node.0, bound, env.clone())?, capture_vars_from_outside(&if_node.1, bound, env.clone())?));
+            let new_if_node = Box::new((capture_outside_variable(&if_node.0, bound, env.clone())?, capture_outside_variable(&if_node.1, bound, env.clone())?));
             let mut new_elseif_nodes = vec![];
             for elseif_node in elseif_nodes {
-                let new_elseif_node = (capture_vars_from_outside(&elseif_node.0, bound, env.clone())?, capture_vars_from_outside(&elseif_node.1, bound, env.clone())?);
+                let new_elseif_node = (capture_outside_variable(&elseif_node.0, bound, env.clone())?, capture_outside_variable(&elseif_node.1, bound, env.clone())?);
                 new_elseif_nodes.push(new_elseif_node);
             }
             let new_else_node = if else_node.is_some() {
-                Some(Box::new(capture_vars_from_outside(&else_node.as_ref().unwrap(), bound, env)?))
+                Some(Box::new(capture_outside_variable(&else_node.as_ref().unwrap(), bound, env)?))
             } else {
                 None
             };
@@ -323,10 +323,10 @@ fn capture_vars_from_outside(lambda: &ASTNode, bound: &[String], env: Rc<RefCell
         ASTNode::Apply(fun, args) => {
             //由于存在递归调用的可能 只能把函数体本身的外部绑定这种行为给禁止掉
             //这个问题还是有希望解决的 只要在函数定义部分绑定函数时bound多加上函数名字本身即可以后再解决
-            //let new_fun = Box::new(capture_vars_from_outside(fun, bound, env.clone())?);
+            //let new_fun = Box::new(capture_outside_variable(fun, bound, env.clone())?);
             let mut new_args = vec![];
             for arg in args {
-                new_args.push(capture_vars_from_outside(arg, bound, env.clone())?)
+                new_args.push(capture_outside_variable(arg, bound, env.clone())?)
             }
             ASTNode::Apply(fun.clone(), new_args)
         },
@@ -334,7 +334,7 @@ fn capture_vars_from_outside(lambda: &ASTNode, bound: &[String], env: Rc<RefCell
         ASTNode::Block(nodes) => {
             let mut new_nodes = vec![];
             for node in nodes {
-                new_nodes.push(capture_vars_from_outside(node, bound, env.clone())?)
+                new_nodes.push(capture_outside_variable(node, bound, env.clone())?)
             }
             ASTNode::Block(new_nodes)
         }
